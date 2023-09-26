@@ -30,5 +30,6 @@ WORKDIR /app
 COPY --from=builder /app/person /app/person
 COPY --from=builder /build/.env /app
 
-CMD ["./person"]
+#CMD ["./person"]
+ENTRYPOINT ["/app/person"]
 
