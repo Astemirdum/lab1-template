@@ -183,3 +183,40 @@ jobs:
             docker compose -f ./person/docker-compose.yaml --env-file ./person/.env pull
             docker compose -f ./person/docker-compose.yaml --env-file ./person/.env down || echo 'no person-compose'
             docker compose -f ./person/docker-compose.yaml --env-file ./person/.env up -d
+
+  deploy-render:
+    if: github.repository == 'skip'
+    name: Deploy to Render
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Trigger deploy via Render API
+        env:
+          deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run:
+          curl "$deploy_url"
+
+      - name: Sleep for 5 sec
+        run: sleep 5s
+        shell: bash
+
+      - name: Wait for Render Deployment
+        uses: bounceapp/render-action@0.6.0
+        with:
+          render-token: ${{ secrets.RENDER_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          service-id: srv-ck234d09ugtj9ce234c4ervr0?key=DUrr_zokiXk
+          retries: 20
+          wait: 30000
+          sleep: 30000
+
+      - name: Run API Tests
+        uses: matt-ball/newman-action@master
+        with:
+          collection: postman/collection.json
+          environment: postman/render-environment.json
+          delayRequest: 100
+          reporters: '[ "cli" ]'
+
